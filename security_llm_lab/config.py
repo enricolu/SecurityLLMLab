@@ -82,6 +82,20 @@ class TrainingConfig:
     logging_steps: int = 10
 
 
+
+@dataclass(slots=True)
+class LLMConfig:
+    backend: str = "huggingface"
+    model_name: str = "mistralai/Mistral-7B-Instruct"
+    base_url: Optional[str] = None
+
+
+@dataclass(slots=True)
+class AgentConfig:
+    max_iterations: int = 5
+    tools: List[str] = field(default_factory=list)
+
+
 @dataclass(slots=True)
 class AppConfig:
     """Top level application configuration."""
@@ -93,6 +107,8 @@ class AppConfig:
     soar: Optional[SOARConfig] = None
     rag: RAGConfig = field(default_factory=RAGConfig)
     training: Optional[TrainingConfig] = None
+    llm: LLMConfig = field(default_factory=LLMConfig)
+    agent: AgentConfig = field(default_factory=AgentConfig)
 
     @property
     def data_lake_dir(self) -> Path:
@@ -140,6 +156,8 @@ class AppConfig:
             training = self.training.__dict__.copy()
             training["output_dir"] = str(self.training.output_dir)
             data["training"] = training
+        data["llm"] = self.llm.__dict__
+        data["agent"] = self.agent.__dict__
         return data
 
     def dump(self, path: Path) -> None:
@@ -193,7 +211,21 @@ class AppConfig:
                 warmup_steps=train_map.get("warmup_steps", 0),
                 save_steps=train_map.get("save_steps", 100),
                 logging_steps=train_map.get("logging_steps", 10),
+
             )
+
+        llm_map = data.get("llm", {})
+        llm = LLMConfig(
+            backend=llm_map.get("backend", "huggingface"),
+            model_name=llm_map.get("model_name", "mistralai/Mistral-7B-Instruct"),
+            base_url=llm_map.get("base_url"),
+        )
+
+        agent_map = data.get("agent", {})
+        agent = AgentConfig(
+            max_iterations=agent_map.get("max_iterations", 5),
+            tools=agent_map.get("tools", []),
+        )
 
         return AppConfig(
             workspace=Path(data["workspace"]).expanduser(),
@@ -203,6 +235,8 @@ class AppConfig:
             soar=soar,
             rag=rag,
             training=training,
+            llm=llm,
+            agent=agent,
         )
 
     @staticmethod
@@ -224,4 +258,6 @@ __all__ = [
     "SOARConfig",
     "RAGConfig",
     "TrainingConfig",
+    "LLMConfig",
+    "AgentConfig",
 ]

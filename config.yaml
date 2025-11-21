@@ -1,0 +1,30 @@
+workspace: ./workspace
+local_sources:
+  - path: /var/log
+    glob: "**/*.log"
+    metadata:
+      source: local-log
+siem:
+  base_url: "https://utmstack.example/api"
+  api_key: "YOUR_KEY"  # Optional: overridden by SIEM_API_KEY env var
+  verify_ssl: true
+  default_index: "security-events"
+soar:
+  base_url: "https://soar.example/api"
+  api_key: "YOUR_SOAR_KEY"  # Optional: overridden by SOAR_API_KEY env var
+rag:
+  index_name: security-rag
+training:
+  model_name: "mistralai/Mistral-7B-Instruct"
+  dataset_name: security_llm_lab/security_corpus
+  max_steps: 1000
+llm:
+  backend: "ollama" # Options: "huggingface", "ollama"
+  model_name: "mistral" # For Ollama: "mistral", "llama2", etc. For HF: repo_id
+  base_url: "http://localhost:11434" # For Ollama
+agent:
+  max_iterations: 5
+  tools:
+    - "search_knowledge_base"
+    - "query_siem"
+    - "check_threat_intel"
