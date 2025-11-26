@@ -1,0 +1,12 @@
+version: "3.9"
+services:
+  security-llm-lab:
+    build: .
+    env_file:
+      - .env
+    volumes:
+      - ./workspace:/workspace
+      - ./config.yaml:/app/config.yaml:ro
+    command: ["python", "main.py", "collect", "--config", "/app/config.yaml"]
+    ports:
+      - "9000:9000" # Metrics port when ENABLE_PIPELINE_METRICS=1

@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
+from urllib.parse import urlparse
 
 import yaml
 
@@ -54,12 +56,35 @@ class SIEMConfig:
     verify_ssl: bool = True
     default_index: str = "security-events"
 
+    @staticmethod
+    def from_mapping(data: Dict[str, Any]) -> "SIEMConfig":
+        api_key = os.getenv("SIEM_API_KEY", data.get("api_key"))
+        if not api_key:
+            raise ValueError("SIEM API key must be provided")
+        return SIEMConfig(
+            base_url=data["base_url"],
+            api_key=api_key,
+            verify_ssl=data.get("verify_ssl", True),
+            default_index=data.get("default_index", "security-events"),
+        )
+
 
 @dataclass(slots=True)
 class SOARConfig:
     base_url: str
     api_key: str
     verify_ssl: bool = True
+
+    @staticmethod
+    def from_mapping(data: Dict[str, Any]) -> "SOARConfig":
+        api_key = os.getenv("SOAR_API_KEY", data.get("api_key"))
+        if not api_key:
+            raise ValueError("SOAR API key must be provided")
+        return SOARConfig(
+            base_url=data["base_url"],
+            api_key=api_key,
+            verify_ssl=data.get("verify_ssl", True),
+        )
 
 
 @dataclass(slots=True)
@@ -174,22 +199,11 @@ class AppConfig:
 
         siem = None
         if "siem" in data and data["siem"]:
-            siem_map = data["siem"]
-            siem = SIEMConfig(
-                base_url=siem_map["base_url"],
-                api_key=siem_map["api_key"],
-                verify_ssl=siem_map.get("verify_ssl", True),
-                default_index=siem_map.get("default_index", "security-events"),
-            )
+            siem = SIEMConfig.from_mapping(data["siem"])
 
         soar = None
         if "soar" in data and data["soar"]:
-            soar_map = data["soar"]
-            soar = SOARConfig(
-                base_url=soar_map["base_url"],
-                api_key=soar_map["api_key"],
-                verify_ssl=soar_map.get("verify_ssl", True),
-            )
+            soar = SOARConfig.from_mapping(data["soar"])
 
         rag_map = data.get("rag", {})
         rag = RAGConfig(
@@ -248,6 +262,24 @@ class AppConfig:
         config = AppConfig.from_mapping(data)
         config.ensure_directories()
         return config
+
+    def validate(self) -> None:
+        """Validate configuration values and raise ValueError on invalid input."""
+
+        if self.siem:
+            parsed = urlparse(self.siem.base_url)
+            if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+                raise ValueError("Invalid SIEM base_url")
+
+        if self.training:
+            if self.training.per_device_train_batch_size <= 0:
+                raise ValueError("per_device_train_batch_size must be positive")
+            if self.training.learning_rate <= 0:
+                raise ValueError("learning_rate must be positive")
+
+        for source in self.local_sources:
+            if not source.path.exists():
+                raise ValueError(f"Local source path does not exist: {source.path}")
 
 
 __all__ = [

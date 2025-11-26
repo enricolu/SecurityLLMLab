@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Iterable
 
@@ -51,7 +51,7 @@ class LocalCollector:
     def _normalize_record(self, line: str, source: Path) -> Dict[str, object]:
         metadata = self.config.metadata or {}
         return {
-            "timestamp": datetime.utcnow().isoformat(timespec="seconds"),
+            "timestamp": datetime.now(tz=timezone.utc).isoformat(),
             "raw": line,
             "source_file": str(source),
             "collector": "local",
