@@ -9,6 +9,7 @@ from security_llm_lab import AppConfig, DataPipeline, TrainingPipeline
 from security_llm_lab.logging_utils import configure_logging
 from security_llm_lab.agent.core import SecurityAgent
 from security_llm_lab.rules.generator import RuleGenerator
+from security_llm_lab.health.self_test import SelfTestRunner
 
 
 def parse_args() -> argparse.Namespace:
@@ -32,6 +33,9 @@ def parse_args() -> argparse.Namespace:
     rule_parser.add_argument("--workspace", type=Path, required=True)
     rule_parser.add_argument("--type", choices=["sigma", "splunk"], required=True, help="Type of rule to generate")
     rule_parser.add_argument("--description", type=str, required=True, help="Description of the rule")
+
+    health_parser = subparsers.add_parser("self-test", help="Run a synthetic health check event")
+    health_parser.add_argument("--workspace", type=Path, required=True, help="Workspace directory")
 
     return parser.parse_args()
 
@@ -99,6 +103,20 @@ def cmd_generate_rule(workspace: Path, rule_type: str, description: str) -> None
     print(result)
 
 
+def cmd_self_test(workspace: Path) -> None:
+    config_path = workspace / "config.yaml"
+    config = AppConfig.load(config_path)
+
+    runner = SelfTestRunner(config)
+    result = runner.run()
+
+    print(f"Synthetic event created at: {result.synthetic_event_path}")
+    if result.siem_forwarded:
+        print("Synthetic event forwarded to SIEM for validation.")
+    else:
+        print("SIEM forwarding skipped (no configuration provided).")
+
+
 def main() -> None:
     args = parse_args()
     configure_logging()
@@ -112,6 +130,8 @@ def main() -> None:
         cmd_rag_query(args.workspace, args.question)
     elif args.command == "generate-rule":
         cmd_generate_rule(args.workspace, args.type, args.description)
+    elif args.command == "self-test":
+        cmd_self_test(args.workspace)
     else:
         raise ValueError(f"Unknown command {args.command}")
 

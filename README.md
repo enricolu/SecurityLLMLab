@@ -20,7 +20,25 @@ python main.py init --workspace ./workspace
 python main.py collect --config ./workspace/config.yaml
 python main.py train --config ./workspace/config.yaml
 python main.py rag-query --workspace ./workspace --question "How do I respond to a brute force attack?"
+python main.py self-test --workspace ./workspace  # 產出合成事件並驗證 SIEM 連線
 ```
+
+## Docker 化部署
+
+專案提供 `Dockerfile` 與 `docker-compose.yml`，方便在容器中啟動收集/訓練流程：
+
+```bash
+# 建立 .env 並設定 API keys、是否啟用 metrics
+cp env.example .env
+
+# 以 docker-compose 啟動資料收集（會掛載 workspace 目錄）
+docker compose up --build
+
+# 進入容器執行其他指令
+docker compose run --rm security-llm-lab python main.py self-test --workspace /workspace
+```
+
+若要暴露 Prometheus metrics，設定 `.env` 中的 `ENABLE_PIPELINE_METRICS=1`，預設會在 `9000` 埠啟動 `start_http_server`。
 
 ## 設定檔
 
@@ -109,6 +127,8 @@ pytest -v
 ### 測試
 - ✅ 基本單元測試覆蓋核心功能
 - ✅ pytest 配置與測試結構
+- ✅ 自我健檢指令（self-test）產生合成事件並可轉送至 SIEM
+- ✅ Prometheus metrics（可選）與 Docker 化部署
 
 ## 重要說明
 
