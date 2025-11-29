@@ -1,6 +1,6 @@
 以下是常見且公開的「藍隊／事件偵測」競賽或挑戰資料來源，適合用來測試 SecurityLLMLab 對 log、event 與異常的處理能力，並附上可期待的檔案型態與使用提示：
 
-Splunk “Boss of the SOC (BOTS)”
+Splunk “Boss of the SOC (BOTS)”，[https://github.com/splunk/botsv1]
 
 內容：多輪次 SOC CTF 實戰資料集，包含 Windows 事件、網路流量、取證鏡像、網頁/郵件/認證日誌等。
 
