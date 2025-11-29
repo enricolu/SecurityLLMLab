@@ -1,0 +1,59 @@
+以下是常見且公開的「藍隊／事件偵測」競賽或挑戰資料來源，適合用來測試 SecurityLLMLab 對 log、event 與異常的處理能力，並附上可期待的檔案型態與使用提示：
+
+Splunk “Boss of the SOC (BOTS)”
+
+內容：多輪次 SOC CTF 實戰資料集，包含 Windows 事件、網路流量、取證鏡像、網頁/郵件/認證日誌等。
+
+取得方式：官方會在每次 BOTS 後公開資料與 walkthrough，可搜尋 “Splunk BOTS dataset” 找到對應輪次（例如 BOTS V3、V5）。
+
+適用性：涵蓋惡意郵件、RDP 暴力、勒索軟體橫向移動等異常模式，適合測試關鍵字與行為序列檢測。
+
+Elastic / Security Union CTF (“Detections Engineering” 或雲端安全場景)
+
+內容：提供 Elastic Stack 匯入的樣本索引（JSON/ndjson 格式），含雲端與端點事件。
+
+取得方式：搜尋 “Elastic Security CTF dataset” 或 “detection engineering CTF data”。
+
+適用性：事件格式接近 ECS，可直接被 SecurityLLMLab 解析，適合測試 SIEM 規則生成。
+
+CyberDefenders Labs（部分為比賽原題）
+
+內容：每個 Lab 會提供 pcap、sysmon、Windows 事件匯出、Zeek/Suricata logs 等，題目多來自公開 CTF。
+
+取得方式：CyberDefenders 平台可免費註冊下載。
+
+適用性：單一場景集中於特定威脅（如 Golden Ticket、PowerShell Empire），便於做有標註的異常樣本。
+
+Blue Team Village / DEF CON Blue Team CTF
+
+內容：常釋出包含系統事件、NetFlow/Zeek、代理與 DNS 日誌的賽後資料包。
+
+取得方式：搜尋 “Blue Team Village CTF dataset” 或查官方 GitHub。
+
+適用性：多源日誌，適合測試跨來源關聯查詢。
+
+SANS Holiday Hack / KringleCon（藍隊關卡）
+
+內容：偶爾提供 pcap、Windows event exports、web 伺服器與身份驗證日誌。
+
+取得方式：搜尋 “SANS Holiday Hack dataset” 或 “KringleCon blue team logs”。
+
+適用性：題目故事性強，能檢驗事件時間線重建與 root cause 分析。
+
+SOC Olympics / BTLO（Blue Team Labs Online）挑戰
+
+內容：包含 Sysmon、EDR、雲端審計（Azure/AWS CloudTrail）與 proxy 日誌。
+
+取得方式：BTLO 平台部分免費，或搜尋 “SOC Olympics dataset”。
+
+適用性：可覆蓋端點與雲端並行的異常偵測。
+
+使用提示
+
+下載後先檢查格式（常見：EVTX、CSV、JSON/ndjson、pcap、Zeek TSV），必要時轉成 SecurityLLMLab 支援的輸入格式。
+
+若資料含個資或敏感資訊，請先匿名化（移除使用者名、IP、域名）再測試。
+
+為建立「正常 vs. 異常」對照，可抽樣一部分作為基線（正常行為），其餘作為攻擊樣本；盡量保留時間戳與主機/使用者上下文。
+
+測試組合：建議混合端點（Sysmon/EVTX）、網路（pcap/Zeek）、身份（AD/雲端審計）三類，驗證 SecurityLLMLab 的關聯與異常偵測能力。
