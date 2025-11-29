@@ -10,6 +10,7 @@ from security_llm_lab.logging_utils import configure_logging
 from security_llm_lab.agent.core import SecurityAgent
 from security_llm_lab.rules.generator import RuleGenerator
 from security_llm_lab.health.self_test import SelfTestRunner
+from security_llm_lab.ingestion import IngestApiConfig, run_ingest_api_server
 
 
 def parse_args() -> argparse.Namespace:
@@ -36,6 +37,14 @@ def parse_args() -> argparse.Namespace:
 
     health_parser = subparsers.add_parser("self-test", help="Run a synthetic health check event")
     health_parser.add_argument("--workspace", type=Path, required=True, help="Workspace directory")
+
+    ingest_parser = subparsers.add_parser("serve-ingest", help="Expose a local HTTP ingestion API")
+    ingest_parser.add_argument("--workspace", type=Path, required=True, help="Workspace directory")
+    ingest_parser.add_argument("--host", type=str, default="0.0.0.0", help="Host to bind")
+    ingest_parser.add_argument("--port", type=int, default=8080, help="Port to bind")
+    ingest_parser.add_argument(
+        "--api-key", type=str, default=None, help="Optional API key required in X-API-Key header"
+    )
 
     return parser.parse_args()
 
@@ -117,6 +126,13 @@ def cmd_self_test(workspace: Path) -> None:
         print("SIEM forwarding skipped (no configuration provided).")
 
 
+def cmd_serve_ingest(workspace: Path, host: str, port: int, api_key: str | None) -> None:
+    config_path = workspace / "config.yaml"
+    config = AppConfig.load(config_path)
+    server_config = IngestApiConfig(workspace=config.workspace, host=host, port=port, api_key=api_key)
+    run_ingest_api_server(server_config)
+
+
 def main() -> None:
     args = parse_args()
     configure_logging()
@@ -132,6 +148,8 @@ def main() -> None:
         cmd_generate_rule(args.workspace, args.type, args.description)
     elif args.command == "self-test":
         cmd_self_test(args.workspace)
+    elif args.command == "serve-ingest":
+        cmd_serve_ingest(args.workspace, args.host, args.port, args.api_key)
     else:
         raise ValueError(f"Unknown command {args.command}")
 
