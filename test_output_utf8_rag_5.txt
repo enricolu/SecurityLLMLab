@@ -1,0 +1,80 @@
+﻿============================= test session starts =============================
+platform win32 -- Python 3.13.1, pytest-9.0.1, pluggy-1.6.0 -- C:\Python313\python.exe
+cachedir: .pytest_cache
+rootdir: D:\SecurityLLMLab
+configfile: pytest.ini
+plugins: anyio-4.9.0, langsmith-0.4.45, asyncio-1.3.0, cov-7.0.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 7 items
+
+tests/test_api_integration.py::test_health_check PASSED                  [ 14%]
+tests/test_api_integration.py::test_create_alert PASSED                  [ 28%]
+tests/test_api_integration.py::test_read_alerts PASSED                   [ 42%]
+tests/test_api_integration.py::test_agent_chat_search FAILED             [ 57%]
+tests/test_api_integration.py::test_agent_analyze_threats PASSED         [ 71%]
+tests/test_api_integration.py::test_knowledge_base PASSED                [ 85%]
+tests/test_api_integration.py::test_agent_chat_rag FAILED                [100%]
+
+================================== FAILURES ===================================
+___________________________ test_agent_chat_search ____________________________
+tests\test_api_integration.py:83: in test_agent_chat_search
+    assert response.status_code == 200
+E   assert 500 == 200
+E    +  where 500 = <Response [500 Internal Server Error]>.status_code
+_____________________________ test_agent_chat_rag _____________________________
+C:\Python313\Lib\unittest\mock.py:1421: in patched
+    with self.decoration_helper(patched,
+C:\Python313\Lib\contextlib.py:141: in __enter__
+    return next(self.gen)
+           ^^^^^^^^^^^^^^
+C:\Python313\Lib\unittest\mock.py:1403: in decoration_helper
+    arg = exit_stack.enter_context(patching)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Python313\Lib\contextlib.py:530: in enter_context
+    result = _enter(cm)
+             ^^^^^^^^^^
+C:\Python313\Lib\unittest\mock.py:1495: in __enter__
+    original, local = self.get_original()
+                      ^^^^^^^^^^^^^^^^^^^
+C:\Python313\Lib\unittest\mock.py:1465: in get_original
+    raise AttributeError(
+E   AttributeError: <module 'security_llm_lab.api.routers.agent' from 'D:\\SecurityLLMLab\\security_llm_lab\\api\\routers\\agent.py'> does not have the attribute 'search_knowledge'
+============================== warnings summary ===============================
+security_llm_lab\api\database.py:16
+  D:\SecurityLLMLab\security_llm_lab\api\database.py:16: MovedIn20Warning: The ``declarative_base()`` function is now available as sqlalchemy.orm.declarative_base(). (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    Base = declarative_base()
+
+C:\Users\enric\AppData\Roaming\Python\Python313\site-packages\pydantic\_internal\_config.py:323
+C:\Users\enric\AppData\Roaming\Python\Python313\site-packages\pydantic\_internal\_config.py:323
+  C:\Users\enric\AppData\Roaming\Python\Python313\site-packages\pydantic\_internal\_config.py:323: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/
+    warnings.warn(DEPRECATION_MESSAGE, DeprecationWarning)
+
+security_llm_lab\api\main.py:32
+  D:\SecurityLLMLab\security_llm_lab\api\main.py:32: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("startup")
+
+C:\Users\enric\AppData\Roaming\Python\Python313\site-packages\fastapi\applications.py:4580
+  C:\Users\enric\AppData\Roaming\Python\Python313\site-packages\fastapi\applications.py:4580: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    return self.router.on_event(event_type)
+
+tests/test_api_integration.py::test_create_alert
+tests/test_api_integration.py::test_agent_analyze_threats
+  D:\SecurityLLMLab\security_llm_lab\api\routers\alerts.py:16: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.11/migration/
+    db_alert = Alert(**alert.dict())
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_api_integration.py::test_agent_chat_search - assert 500 == 200
+ +  where 500 = <Response [500 Internal Server Error]>.status_code
+FAILED tests/test_api_integration.py::test_agent_chat_rag - AttributeError: <module 'security_llm_lab.api.routers.agent' from 'D:\\SecurityLLMLab\\security_llm_lab\\api\\routers\\agent.py'> does not have the attribute 'search_knowledge'
+================== 2 failed, 5 passed, 7 warnings in 19.72s ===================

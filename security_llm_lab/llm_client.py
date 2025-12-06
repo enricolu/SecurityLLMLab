@@ -3,9 +3,11 @@
 from abc import ABC, abstractmethod
 from typing import Optional, Any
 
+from langchain_openai import ChatOpenAI
 from langchain_community.llms import Ollama
 from langchain_community.chat_models import ChatOllama
 from langchain_core.language_models import BaseChatModel
+import os
 
 from security_llm_lab.config import LLMConfig
 
@@ -34,23 +36,26 @@ class OllamaClient(LLMClient):
         )
 
 
-class HuggingFaceClient(LLMClient):
-    """Client for Hugging Face backend (Placeholder for now)."""
+class OpenAIClient(LLMClient):
+    """Client for OpenAI backend."""
 
     def __init__(self, config: LLMConfig):
         self.model_name = config.model_name
+        self.api_key = os.getenv("OPENAI_API_KEY")
 
     def get_chat_model(self) -> BaseChatModel:
-        # TODO: Implement HuggingFace pipeline wrapper for LangChain
-        # For now, raise NotImplementedError or return a mock
-        raise NotImplementedError("HuggingFace backend not yet fully implemented for Agentic workflow.")
+        return ChatOpenAI(
+            model_name=self.model_name,
+            openai_api_key=self.api_key,
+            temperature=0.1,
+        )
 
 
 def get_llm_client(config: LLMConfig) -> LLMClient:
     """Factory function to get the appropriate LLM client."""
     if config.backend == "ollama":
         return OllamaClient(config)
-    elif config.backend == "huggingface":
-        return HuggingFaceClient(config)
+    elif config.backend == "openai":
+        return OpenAIClient(config)
     else:
         raise ValueError(f"Unsupported LLM backend: {config.backend}")

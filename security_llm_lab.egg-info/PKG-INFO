@@ -18,9 +18,18 @@ Requires-Dist: tenacity>=8.2.0
 Requires-Dist: langchain>=0.1.0
 Requires-Dist: langchain-community>=0.0.10
 Requires-Dist: ollama>=0.1.0
+Requires-Dist: prometheus-client>=0.20.0
+Requires-Dist: fastapi>=0.100.0
+Requires-Dist: uvicorn[standard]>=0.20.0
+Requires-Dist: sqlalchemy>=2.0.0
+Requires-Dist: asyncpg>=0.27.0
+Requires-Dist: elasticsearch>=8.0.0
+Requires-Dist: langchain-openai>=0.0.1
 Provides-Extra: dev
 Requires-Dist: pytest>=7.4.0; extra == "dev"
 Requires-Dist: ruff>=0.1.8; extra == "dev"
+Requires-Dist: httpx>=0.24.0; extra == "dev"
+Requires-Dist: pytest-asyncio>=0.21.0; extra == "dev"
 Dynamic: license-file
 
 # Security LLM Lab
@@ -30,7 +39,7 @@ Security LLM Lab 提供一個端到端的範例，示範如何彙整本地與公
 ## 功能
 
 - **資料匯入**：支援 LogHub、CyberLLMInstruct 等開源資源，並能掃描本地端的情資與日誌檔案。
-- **SIEM 與 SOAR 串接**：提供向 UTMStack 及其他相容 REST API 的 SIEM/SOAR 平台匯出事件的範例。
+- **SIEM 與 SOAR 串接**：提供向 UTMStack、Wazuh 及其他相容 REST API 的 SIEM/SOAR 平台匯出事件的範例。
 - **資料湖管理**：統一將資料轉換成標準化 schema，並儲存於工作目錄供後續訓練。
 - **模型訓練**：使用 Hugging Face `transformers` 與 `datasets` 套件，提供微調大型語言模型的流程。
 - **RAG 管線**：以 TF-IDF 檢索與向量化索引，支援檢索強化生成的查詢流程。
@@ -45,7 +54,26 @@ python main.py init --workspace ./workspace
 python main.py collect --config ./workspace/config.yaml
 python main.py train --config ./workspace/config.yaml
 python main.py rag-query --workspace ./workspace --question "How do I respond to a brute force attack?"
+python main.py self-test --workspace ./workspace  # 產出合成事件並驗證 SIEM 連線
+python main.py serve-ingest --workspace ./workspace --port 8080 --api-key change-me  # 啟動本地代理匯聚 API
 ```
+
+## Docker 化部署
+
+專案提供 `Dockerfile` 與 `docker-compose.yml`，方便在容器中啟動收集/訓練流程：
+
+```bash
+# 建立 .env 並設定 API keys、是否啟用 metrics
+cp env.example .env
+
+# 以 docker-compose 啟動資料收集（會掛載 workspace 目錄）
+docker compose up --build
+
+# 進入容器執行其他指令
+docker compose run --rm security-llm-lab python main.py self-test --workspace /workspace
+```
+
+若要暴露 Prometheus metrics，設定 `.env` 中的 `ENABLE_PIPELINE_METRICS=1`，預設會在 `9000` 埠啟動 `start_http_server`。
 
 ## 設定檔
 
@@ -86,6 +114,74 @@ training:
 ```
 
 **注意：** 請勿將包含真實 API keys 的配置檔提交到版本控制系統。使用環境變數或 `.env` 檔案（已包含在 `.gitignore` 中）來管理敏感資訊。
+
+## 與 UTMStack API 互動
+
+Security LLM Lab 內建的 `UTMStackClient` 可以用來驗證連線、送出事件或將收集到的 JSONL 檔轉入 UTMStack：
+
+```python
+from security_llm_lab.integrations import UTMStackClient
+
+client = UTMStackClient(
+    base_url="https://utmstack.example/api",
+    api_key="<your-api-key>",
+    verify_ssl=True,
+    default_index="security-events",
+)
+
+# 驗證 REST API 狀態
+client.test_connection()
+
+# 送出自定義事件
+client.send_events([
+    {"message": "demo event from SecurityLLMLab", "severity": "low"}
+])
+```
+
+若要將資料管線產出的 JSONL 檔同步到 UTMStack，只要在 `config.yaml` 中設定 `siem` 區塊並執行 `python main.py collect --config ./workspace/config.yaml`，即可自動轉送。
+
+## 與 Wazuh API 互動
+
+`WazuhClient` 提供存取 [wazuh/wazuh](https://github.com/wazuh/wazuh) API 的基本範例，包括取得 token、列出 agent、查詢告警與送出測試事件：
+
+```python
+from security_llm_lab.integrations import WazuhClient
+
+client = WazuhClient(
+    base_url="https://wazuh.example:55000",
+    username="wazuh-user",
+    password="<password>",
+    verify_ssl=False,  # 依需求啟用/關閉驗證
+)
+
+# 列出 agent 與查詢告警
+agents = client.list_agents(limit=100)
+alerts = client.search_alerts(query="rule.level:>=8", limit=50)
+
+# 送出測試事件（會經由 /manager/logtest）
+client.submit_logtest("demo event from SecurityLLMLab")
+```
+
+如果已有 Wazuh API token，也可以在初始化時以 `token="..."` 直接傳入，跳過 username/password 驗證。
+
+## 匯聚本地 Agent 蒐集的情資
+
+使用 `serve-ingest` 指令啟動簡易 HTTP API，讓其他本地 Agent 以 JSON 將事件推送到 Security LLM Lab 的工作目錄：
+
+```bash
+python main.py serve-ingest --workspace ./workspace --host 0.0.0.0 --port 8080 --api-key change-me
+```
+
+API 授權透過 `X-API-Key` 標頭控制（可選），端點為 `POST /ingest`，接受單筆或陣列的 JSON 物件，並自動寫入 `workspace/data_lake/ingest_api/ingested.jsonl` 供後續訓練或轉送至 SIEM：
+
+```bash
+curl -X POST "http://localhost:8080/ingest" \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: change-me" \
+  -d '{"message": "from local agent", "source": "endpoint-1"}'
+```
+
+在匯聚 API 後端即可使用 `DataPipeline` 或自訂流程讀取 `ingested.jsonl`，並利用 `UTMStackClient` 或 `WazuhClient` 將資料轉送到對應的 SIEM/SOAR 平台。
 
 ## 測試
 
@@ -134,6 +230,8 @@ pytest -v
 ### 測試
 - ✅ 基本單元測試覆蓋核心功能
 - ✅ pytest 配置與測試結構
+- ✅ 自我健檢指令（self-test）產生合成事件並可轉送至 SIEM
+- ✅ Prometheus metrics（可選）與 Docker 化部署
 
 ## 重要說明
 
